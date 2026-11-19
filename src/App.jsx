@@ -7,9 +7,10 @@ import VideoStage from './components/VideoStage.jsx';
 import Inspector from './components/Inspector.jsx';
 import ClipBin from './components/ClipBin.jsx';
 import ShortcutsModal from './components/ShortcutsModal.jsx';
+import DownloadModal from './components/DownloadModal.jsx';
 
 import { drawFrame } from './lib/draw.js';
-import { ensureAudio, setAudioGain, recordClip, recordDirectStream, saveFile } from './lib/media.js';
+import { ensureAudio, setAudioGain, recordClip, recordDirectStream, saveFile, playSoundEffect } from './lib/media.js';
 import { loadYT } from './lib/youtube.js';
 import {
   fmt,
@@ -130,6 +131,16 @@ body {
   padding: 3px 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.06); color: var(--text-muted);
 }
 .fps-toggle.on { background: var(--crimson); color: #fff; }
+.btn-header-download {
+  display: flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, #ff1e42, #ff4162); color: #fff; font-weight: 700;
+  font-size: 12.5px; padding: 8px 15px; border-radius: var(--radius-md);
+  box-shadow: 0 0 16px var(--crimson-glow); cursor: pointer; transition: all 0.15s ease;
+}
+.btn-header-download:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff3b5c, #ff1e42); box-shadow: 0 0 24px rgba(255, 30, 66, 0.7); transform: translateY(-1px);
+}
+.btn-header-download:disabled { opacity: 0.45; cursor: not-allowed; }
 .icon-btn {
   width: 36px; height: 36px; border-radius: var(--radius-md);
   background: var(--bg-card); border: 1px solid var(--line); display: flex;
@@ -330,7 +341,7 @@ body {
   border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line);
 }
 .yt-iframe-host, .yt-iframe-host iframe { width: 100%; height: 100%; display: block; }
-.stage-transport-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.stage-transport-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-start; width: 100%; }
 .btn-transport {
   display: flex; align-items: center; gap: 6px; background: var(--bg-card);
   border: 1px solid var(--line); padding: 7px 14px; border-radius: var(--radius-md); font-size: 12.5px; font-weight: 600; color: var(--platinum);
@@ -339,6 +350,12 @@ body {
 .btn-transport.play-btn { background: var(--crimson); border-color: var(--crimson); color: #fff; box-shadow: 0 0 12px var(--crimson-glow); }
 .stage-time-display { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 13px; margin-left: 8px; color: var(--text-dim); }
 .stage-time-display b { color: var(--platinum); font-weight: 600; }
+.btn-stage-download {
+  display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #ff1e42, #d90429);
+  color: #fff; font-weight: 700; font-size: 12.5px; padding: 7px 16px; border-radius: var(--radius-md);
+  margin-left: auto; box-shadow: 0 0 14px var(--crimson-glow); cursor: pointer;
+}
+.btn-stage-download:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
 .timeline-wrapper {
   background: var(--bg-panel); border: 1px solid var(--line); border-radius: var(--radius-lg);
   padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
@@ -544,7 +561,7 @@ body {
   font-size: 12px; padding: 6px; border-radius: var(--radius-sm);
 }
 .modal-backdrop {
-  position: fixed; inset: 0; background: rgba(4, 4, 6, 0.82); backdrop-filter: blur(12px);
+  position: fixed; inset: 0; background: rgba(4, 4, 6, 0.85); backdrop-filter: blur(14px);
   display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px;
 }
 .modal-card {
@@ -552,9 +569,12 @@ body {
   max-width: 440px; width: 100%; padding: 22px; display: flex; flex-direction: column; gap: 16px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 24px var(--crimson-glow);
 }
-.modal-header { display: flex; align-items: center; justify-content: space-between; }
-.modal-title-row { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--platinum); }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.modal-title-row { display: flex; align-items: center; gap: 10px; }
+.modal-title-row h3 { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--platinum); }
+.modal-subtitle { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 .modal-close-btn { color: var(--text-dim); }
+.modal-close-btn:hover { color: var(--platinum); }
 .shortcuts-list { display: flex; flex-direction: column; gap: 10px; }
 .shortcut-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .shortcut-desc { font-size: 13px; color: var(--platinum); }
@@ -566,6 +586,40 @@ body {
 .btn-modal-done {
   background: var(--crimson); color: #fff; font-weight: 700; font-size: 13px; padding: 8px 18px; border-radius: var(--radius-md);
 }
+
+/* Download Modal */
+.download-modal-card {
+  background: var(--bg-panel); border: 1px solid var(--crimson-border); border-radius: var(--radius-lg);
+  max-width: 480px; width: 100%; padding: 24px; display: flex; flex-direction: column; gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 32px var(--crimson-glow);
+}
+.download-preview-wrap {
+  width: 100%; max-height: 280px; display: flex; justify-content: center; background: #000;
+  border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--line-strong);
+}
+.download-preview-video { max-height: 280px; aspect-ratio: 9 / 16; border-radius: var(--radius-sm); display: block; }
+.download-specs-card {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-card);
+  border: 1px solid var(--line); padding: 12px; border-radius: var(--radius-md);
+}
+.spec-item { display: flex; flex-direction: column; gap: 2px; }
+.spec-label { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; font-family: var(--font-mono); }
+.spec-val { font-size: 12px; font-weight: 700; color: var(--platinum); }
+.text-gold { color: var(--gold); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.download-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+.btn-download-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, #ff1e42, #ff3b5c); color: #fff; font-weight: 800;
+  font-size: 14px; padding: 13px; border-radius: var(--radius-md); box-shadow: 0 4px 20px var(--crimson-glow); cursor: pointer;
+}
+.btn-download-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-copy-modal {
+  display: flex; align-items: center; justify-content: center; gap: 7px; background: var(--bg-card);
+  border: 1px solid var(--line-strong); color: var(--platinum); font-size: 13px; font-weight: 600; padding: 10px; border-radius: var(--radius-md);
+}
+.btn-copy-modal:hover { border-color: var(--crimson); background: var(--crimson-subtle); }
+.download-hint { font-size: 11.5px; color: #4ade80; text-align: center; font-weight: 600; }
 .hidden-source-video { position: absolute; width: 2px; height: 2px; opacity: 0; pointer-events: none; left: -9999px; top: -9999px; }
 .text-crimson { color: var(--crimson); }
 .inspector-empty {
@@ -609,6 +663,10 @@ export default function App() {
   const [fps, setFps] = useState(30); // 30, 60
   const [showSafeZones, setShowSafeZones] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Download Finished Modal
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [lastDownload, setLastDownload] = useState(null);
 
   // Jobs, UI status & Drag/Drop
   const [job, setJob] = useState(null);
@@ -994,37 +1052,56 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   });
 
-  /* ---------- Video Exports with Confetti ---------- */
+  /* ---------- Video Exports with Direct Local Download & Preview Modal ---------- */
   const exportClips = async (clipList) => {
     const v = videoRef.current;
     if (!v || !clipList.length || job) return;
     ensureAudio(v);
 
     try {
+      let lastExportResult = null;
       for (let i = 0; i < clipList.length; i++) {
         const c = clipList[i];
         const label = `Rendering Short ${i + 1} of ${clipList.length} (${res}p @ ${fps}fps)...`;
         setJob({ label, pct: 0 });
 
-        const { blob, ext } = await recordClip(v, c, res, fps, (p) => {
+        const result = await recordClip(v, c, res, fps, (p) => {
           setJob({ label, pct: p });
         });
 
-        saveFile(
-          `${slug(c.title)}-${i + 1}-${res}p.${ext}`,
-          blob,
-          blob.type
-        );
+        const filename = `${slug(c.title)}-${i + 1}-${res}p.${result.ext}`;
+
+        // Automatically trigger browser download to local file on disk!
+        saveFile(filename, result.blob, result.blob.type);
+
+        lastExportResult = {
+          ...result,
+          filename,
+          title: c.title,
+          duration: c.end - c.start,
+          res,
+          fps,
+        };
       }
 
+      // Play success audio chime
+      playSoundEffect('ding');
+
+      // Celebrate with Red, Gold & Platinum Confetti!
       confetti({
-        particleCount: 80,
-        spread: 70,
+        particleCount: 90,
+        spread: 75,
         origin: { y: 0.6 },
         colors: ['#ff1e42', '#ffd166', '#ffffff', '#ff4162'],
       });
 
-      showToast(`🎉 Exported ${clipList.length} Short(s) in high quality!`);
+      showToast(`🎉 Exported ${clipList.length} Short(s) directly to your Downloads folder!`);
+
+      // Open Download Modal for instant playback and repeat download
+      if (lastExportResult) {
+        setLastDownload(lastExportResult);
+        setDownloadModalOpen(true);
+      }
     } catch (e) {
       showToast(`Export failed: ${e.message || 'Error occurred'}`);
     }
@@ -1104,6 +1181,8 @@ export default function App() {
         fps={fps}
         setFps={setFps}
         onOpenShortcuts={() => setShowShortcuts(true)}
+        onDownloadShort={() => active && exportClips([active])}
+        hasActiveClip={Boolean(active)}
         busy={busy}
       />
 
@@ -1167,6 +1246,7 @@ export default function App() {
             onSetIn={setIn}
             onSetOut={setOut}
             onAddClip={addClip}
+            onDownloadShort={() => active && exportClips([active])}
             busy={busy}
             job={job}
             onFileSelect={loadFile}
@@ -1174,6 +1254,8 @@ export default function App() {
             setShowSafeZones={setShowSafeZones}
             isDragOver={isDragOver}
             onPickDemo={() => loadSample(SAMPLE_VIDEOS[0])}
+            res={res}
+            fps={fps}
           />
 
           {duration > 0 && (
@@ -1220,6 +1302,20 @@ export default function App() {
       <ShortcutsModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
+      />
+
+      {/* Download Video Finished Modal */}
+      <DownloadModal
+        isOpen={downloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
+        downloadData={lastDownload}
+        onDownloadAgain={() => {
+          if (lastDownload) {
+            saveFile(lastDownload.filename, lastDownload.blob, lastDownload.blob.type);
+            showToast('Downloaded video again to local file!');
+          }
+        }}
+        onCopyCaption={copyPost}
       />
     </div>
   );

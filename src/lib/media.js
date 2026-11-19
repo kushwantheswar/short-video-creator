@@ -44,6 +44,9 @@ export function playSoundEffect(type = 'whoosh') {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     const ctx = audio.ctx || new AC();
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const now = ctx.currentTime;
 
     if (type === 'whoosh') {
@@ -193,9 +196,14 @@ export async function recordClip(video, clip, res = 1080, fps = 30, onProgress) 
       video.pause();
       rec.onstop = () => {
         if (audio.gain) audio.gain.gain.value = clip.volume || 1.0;
+        const blob = new Blob(chunks, { type });
+        const ext = type.includes('mp4') ? 'mp4' : 'webm';
+        const blobUrl = URL.createObjectURL(blob);
+
         resolve({
-          blob: new Blob(chunks, { type }),
-          ext: type.includes('mp4') ? 'mp4' : 'webm',
+          blob,
+          ext,
+          blobUrl,
         });
       };
       if (rec.state !== 'inactive') {
@@ -240,14 +248,20 @@ export async function recordDirectStream({ type = 'screen' }) {
   return stream;
 }
 
+/** Save file directly into user local device */
 export function saveFile(name, data, type = 'text/plain') {
   const blob = data instanceof Blob ? data : new Blob([data], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
+  a.style.display = 'none';
   a.href = url;
   a.download = name;
   document.body.appendChild(a);
   a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  setTimeout(() => {
+    try {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {}
+  }, 1000);
 }

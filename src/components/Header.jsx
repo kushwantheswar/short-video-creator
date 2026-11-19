@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Video, Link2, Upload, Radio, HelpCircle, Film } from 'lucide-react';
+import { Sparkles, Video, Link2, Upload, Radio, HelpCircle, Film, Download } from 'lucide-react';
 
 function GithubIcon({ size = 18 }) {
   return (
@@ -28,6 +28,8 @@ export default function Header({
   fps,
   setFps,
   onOpenShortcuts,
+  onDownloadShort,
+  hasActiveClip,
   busy,
 }) {
   return (
@@ -117,6 +119,18 @@ export default function Header({
             {fps}fps
           </button>
         </div>
+
+        {/* Global Download Short Button */}
+        <button
+          type="button"
+          className="btn-header-download"
+          onClick={onDownloadShort}
+          disabled={busy || !hasActiveClip}
+          title="Download Current 9:16 Short to Local File"
+        >
+          <Download size={15} />
+          <span>Download Short</span>
+        </button>
 
         {/* Shortcuts button */}
         <button

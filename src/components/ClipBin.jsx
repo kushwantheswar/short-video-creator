@@ -158,7 +158,7 @@ export default function ClipBin({
             onClick={onExportAll}
           >
             <Download size={15} />
-            <span>Export All ({clips.length})</span>
+            <span>Download All ({clips.length})</span>
           </button>
         )}
 

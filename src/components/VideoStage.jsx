@@ -10,6 +10,7 @@ import {
   Maximize2,
   Sparkles,
   Scissors,
+  Download,
 } from 'lucide-react';
 
 export default function VideoStage({
@@ -26,6 +27,7 @@ export default function VideoStage({
   onSetIn,
   onSetOut,
   onAddClip,
+  onDownloadShort,
   busy,
   job,
   onFileSelect,
@@ -33,9 +35,9 @@ export default function VideoStage({
   setShowSafeZones,
   isDragOver,
   onPickDemo,
+  res,
+  fps,
 }) {
-  const [isMuted, setIsMuted] = useState(false);
-
   return (
     <section className="stage-panel">
       {/* 1. Drag & Drop Upload State (when no video is loaded in file mode) */}
@@ -105,7 +107,7 @@ export default function VideoStage({
 
             {/* Overlaid Quick Badge */}
             <div className="monitor-top-overlay">
-              <span className="monitor-aspect-pill">9:16 SHORTS</span>
+              <span className="monitor-aspect-pill">9:16 SHORTS ({res}p)</span>
               <button
                 type="button"
                 className={`safe-zone-toggle ${showSafeZones ? 'active-zone' : ''}`}
@@ -189,6 +191,20 @@ export default function VideoStage({
             <span>/</span>
             <span>{fmt(duration)}</span>
           </div>
+
+          {/* Quick Download Button on Stage */}
+          {activeClip && (
+            <button
+              type="button"
+              className="btn-stage-download"
+              onClick={onDownloadShort}
+              disabled={busy}
+              title="Export and Download this Short directly to your PC"
+            >
+              <Download size={15} />
+              <span>Download Short</span>
+            </button>
+          )}
         </div>
       )}
     </section>

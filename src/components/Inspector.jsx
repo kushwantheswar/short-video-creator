@@ -22,6 +22,7 @@ import {
   Sliders,
   Type,
   Music,
+  Download,
 } from 'lucide-react';
 
 export default function Inspector({
@@ -437,8 +438,8 @@ export default function Inspector({
                   disabled={busy}
                   onClick={onExport}
                 >
-                  <Sparkles size={16} />
-                  <span>Render & Export This Short</span>
+                  <Download size={16} />
+                  <span>Render & Download This Short</span>
                 </button>
               ) : (
                 <div className="link-mode-notice">
